@@ -35,6 +35,7 @@
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none; 
+  height: 100%; 
 }
 
 .carousel-container::-webkit-scrollbar {
@@ -43,7 +44,8 @@
 
 .carousel-slide {
   flex: 0 0 100%;
-  scroll-snap-align: center;
+  scroll-snap-align: start;
+  height: 100%; 
 }
 
 .carousel-slide img {

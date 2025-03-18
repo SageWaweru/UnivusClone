@@ -284,9 +284,13 @@ function Feed() {
             height: "100vh",
             maxWidth: "400px",
             overflowX: "hidden",
+            position: "relative",
           }}
         >
-          <div className="position-absolute top-0 d-flex w-100 py-3 d-flex flex-column">
+          <div
+            className="position-absolute top-0 d-flex w-100 py-3 d-flex flex-column"
+            style={{ zIndex: 10 }}
+          >
             <div className="d-flex">
               <div className="fw-bold border-bottom border-3 border-black text-black w-50 p-2 m-1">
                 For You
