@@ -21,14 +21,17 @@ import {
 } from "@fortawesome/free-regular-svg-icons";
 
 const API_KEY = import.meta.env.VITE_API_KEY;
-const URL = "https://api.pexels.com/videos/popular?per_page=5";
+const VIDEO_URL = "https://api.pexels.com/videos/popular?per_page=5";
+const IMAGE_URL = "https://api.pexels.com/v1/curated?per_page=9";
 
 function Feed() {
-  const [videos, setVideos] = useState([]);
+  const [feed, setFeed] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const videoRefs = useRef([]);
   const [playingIndex, setPlayingIndex] = useState(null);
   const [manuallyPaused, setManuallyPaused] = useState(null);
+  const [currentIndex, setCurrentIndex] = useState({});
+  const carouselRefs = useRef({});
 
   const onVideoPress = (index) => {
     const video = videoRefs.current[index];
@@ -110,58 +113,110 @@ function Feed() {
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        const response = await fetch(URL, {
+        const response = await fetch(VIDEO_URL, {
           headers: { Authorization: API_KEY },
         });
-
         if (!response.ok) throw new Error("Failed to fetch videos");
 
         const data = await response.json();
-        
-        const getStoredEngagements = () => {
-          return JSON.parse(localStorage.getItem("videoEngagements")) || {};
-        };
-
-        let engagements = getStoredEngagements();
-
-        const videoStats = data.videos.map((video) => {
-          if (!engagements[video.id]) {
-            engagements[video.id] = {
-              likes: getRandomNumber(),
-              comments: getRandomNumber(),
-              shares: getRandomNumber(),
-              saves: getRandomNumber(),
-              streak: getRandomNumber(),
-            };
-          }
-          return {
-            ...video,
-            ...engagements[video.id],
-          };
-        });
-
-        localStorage.setItem("videoEngagements", JSON.stringify(engagements));
-
-        setVideos(videoStats);
+        return data.videos.map((video) => ({
+          id: video.id,
+          type: "video",
+          src: video.video_files[1]?.link,
+        }));
       } catch (error) {
         console.error("Error fetching videos:", error);
+        return [];
       }
     };
 
-    fetchVideos();
+    const fetchImages = async () => {
+      try {
+        const response = await fetch(IMAGE_URL, {
+          headers: { Authorization: API_KEY },
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch images");
+
+        const data = await response.json();
+
+        const groupedImages = [];
+        for (let i = 0; i < data.photos.length; i += 3) {
+          groupedImages.push({
+            id: `post-${i / 3}`,
+            type: "image",
+            images: data.photos.slice(i, i + 3).map((photo) => photo.src.large),
+          });
+        }
+
+        return groupedImages;
+      } catch (error) {
+        console.error("Error fetching images:", error);
+        return [];
+      }
+    };
+
+    const fetchFeed = async () => {
+      const [videoData, imageData] = await Promise.all([
+        fetchVideos(),
+        fetchImages(),
+      ]);
+      const combinedFeed = [...videoData, ...imageData];
+
+      const storedEngagements =
+        JSON.parse(localStorage.getItem("videoEngagements")) || {};
+
+      const updatedFeed = combinedFeed.map((item) => ({
+        ...item,
+        likes: storedEngagements[item.id]?.likes ?? getRandomNumber(),
+        comments: storedEngagements[item.id]?.comments ?? getRandomNumber(),
+        shares: storedEngagements[item.id]?.shares ?? getRandomNumber(),
+        saves: storedEngagements[item.id]?.saves ?? getRandomNumber(),
+        streak: storedEngagements[item.id]?.streak ?? getRandomNumber(),
+      }));
+
+      updatedFeed.forEach((item) => {
+        if (!storedEngagements[item.id]) {
+          storedEngagements[item.id] = {
+            likes: item.likes,
+            comments: item.comments,
+            shares: item.shares,
+            saves: item.saves,
+            streak: item.streak,
+          };
+        }
+      });
+
+      localStorage.setItem(
+        "videoEngagements",
+        JSON.stringify(storedEngagements)
+      );
+      setFeed(updatedFeed.sort(() => Math.random() - 0.5));
+    };
+
+    fetchFeed();
   }, []);
 
   const [userActions, setUserActions] = useState(
     JSON.parse(localStorage.getItem("userActions")) || {}
   );
 
-  const updateEngagement = (videoId, type) => {
+  const updateEngagement = (itemId, type) => {
     let engagements =
       JSON.parse(localStorage.getItem("videoEngagements")) || {};
     let actions = JSON.parse(localStorage.getItem("userActions")) || {};
 
-    if (!engagements[videoId]) {
-      engagements[videoId] = {
+    if (!engagements[itemId]) {
+      engagements[itemId] = {
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        saves: 0,
+        streak: 0,
+      };
+    }
+    if (!actions[itemId]) {
+      actions[itemId] = {
         likes: 0,
         comments: 0,
         shares: 0,
@@ -170,41 +225,43 @@ function Feed() {
       };
     }
 
-    if (!actions[videoId]) {
-      actions[videoId] = {
-        likes: 0,
-        comments: 0,
-        shares: 0,
-        saves: 0,
-        streak: 0,
-      };
-    }
+    const hasInteracted = actions[itemId][type] === 1;
 
-    if (actions[videoId][type] === 1) {
-      engagements[videoId][type] -= 1;
-      actions[videoId][type] = 0;
-    } else {
-      engagements[videoId][type] += 1;
-      actions[videoId][type] = 1;
-    }
+    const updatedActions = {
+      ...actions,
+      [itemId]: { ...actions[itemId], [type]: hasInteracted ? 0 : 1 },
+    };
+    setUserActions(updatedActions);
 
+    engagements[itemId][type] = hasInteracted
+      ? Math.max(0, engagements[itemId][type] - 1)
+      : engagements[itemId][type] + 1;
+
+    localStorage.setItem("userActions", JSON.stringify(updatedActions));
     localStorage.setItem("videoEngagements", JSON.stringify(engagements));
-    localStorage.setItem("userActions", JSON.stringify(actions));
 
-    setVideos((prevVideos) =>
-      prevVideos.map((video) =>
-        video.id === videoId
-          ? { ...video, [type]: engagements[videoId][type] }
-          : video
+    setFeed((prevFeed) =>
+      prevFeed.map((item) =>
+        item.id === itemId
+          ? { ...item, [type]: engagements[itemId][type] }
+          : item
       )
     );
+  };
 
-    setUserActions(actions);
+  const handleScroll = (index) => {
+    if (!carouselRefs.current[index]) return;
+
+    const scrollLeft = carouselRefs.current[index].scrollLeft;
+    const slideWidth = carouselRefs.current[index].clientWidth;
+
+    const newIndex = Math.round(scrollLeft / slideWidth);
+    setCurrentIndex((prev) => ({ ...prev, [index]: newIndex }));
   };
 
   return (
     <div className="bg-light video-feed">
-      {videos.map((video, index) => (
+      {feed.map((feedItem, index) => (
         <div
           key={index}
           className="video-container position-relative d-flex justify-content-center align-items-center mx-auto"
@@ -276,17 +333,54 @@ function Feed() {
             </div>
           </div>
 
-          <video
-            key={index}
-            ref={(el) => (videoRefs.current[index] = el)}
-            src={video.video_files[1]?.link}
-            className="object-fit-cover w-100 h-100"
-            loop
-            autoPlay
-            muted
-            playsInline
-            onClick={() => onVideoPress(index)}
-          />
+          {feedItem.type === "video" ? (
+            <video
+              ref={(el) => (videoRefs.current[index] = el)}
+              src={feedItem.src}
+              className="object-fit-cover w-100 h-100"
+              loop
+              autoPlay
+              muted
+              playsInline
+              onClick={() => onVideoPress(index)}
+            />
+          ) : feedItem.images.length > 1 ? (
+            <div className="carousel-wrapper">
+              <div
+                className="carousel-container"
+                ref={(el) => (carouselRefs.current[index] = el)}
+                onScroll={() => handleScroll(index)}
+              >
+                {feedItem.images.map((imgSrc, idx) => (
+                  <div key={idx} className="carousel-slide">
+                    <img
+                      src={imgSrc}
+                      className="object-fit-cover w-100 h-100"
+                      alt="Feed Item"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="carousel-dots">
+                {feedItem.images.map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`dot ${
+                      currentIndex[index] === idx ? "active" : ""
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <img
+              src={feedItem.src}
+              className="object-fit-cover w-100 h-100"
+              alt="Pexels"
+              style={{ objectFit: "cover" }}
+            />
+          )}
 
           <div className="position-absolute top-50 end-0 translate-middle-y d-flex flex-column text-white mt-4 p-3">
             {[
@@ -294,25 +388,29 @@ function Feed() {
                 type: "likes",
                 icon: faHeartRegular,
                 solidIcon: faHeartSolid,
-                count: video.likes,
+                count: feedItem.likes,
               },
-              { type: "comments", icon: faCommentDots, count: video.comments },
+              {
+                type: "comments",
+                icon: faCommentDots,
+                count: feedItem.comments,
+              },
               {
                 type: "saves",
                 icon: faBookmarkRegular,
                 solidIcon: faBookmarkSolid,
-                count: video.saves,
+                count: feedItem.saves,
               },
               {
                 type: "shares",
                 icon: faShare,
                 solidIcon: faShare,
-                count: video.shares,
+                count: feedItem.shares,
               },
               {
                 type: "streak",
                 icon: faBell,
-                count: video.streak,
+                count: feedItem.streak,
                 isWhite: true,
               },
               { type: "chime", count: null, isWhite: true, isPill: true },
@@ -352,7 +450,7 @@ function Feed() {
                     onClick={() =>
                       item.type === "comments"
                         ? setShowModal(true)
-                        : updateEngagement(video.id, item.type)
+                        : updateEngagement(feedItem.id, item.type)
                     }
                   >
                     {item.type === "streak" ? (
@@ -383,11 +481,12 @@ function Feed() {
                     ) : item.icon ? (
                       <FontAwesomeIcon
                         icon={
-                          userActions[video.id]?.[item.type] === 1
+                          userActions[feedItem.id]?.[item.type] === 1
                             ? item.solidIcon
                             : item.icon
                         }
                         size="lg"
+                        style={{ backgroundColor: "transparent" }}
                       />
                     ) : (
                       <span
@@ -412,12 +511,12 @@ function Feed() {
                       className="text-white fw-bold "
                       style={{ fontSize: "14px" }}
                     >
-                      {item.count}
+                      {feedItem[item.type]}
                     </span>
                   )}
                 </div>
               </div>
-            ))}{" "}
+            ))}
           </div>
           {showModal && (
             <div

@@ -21,12 +21,57 @@
   display: none;
 }
 
-
-
-.card {
-  padding: 2em;
+.carousel-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%; 
+  overflow: hidden; 
 }
 
-.read-the-docs {
-  color: #888;
+.carousel-container {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; 
+  height: 100%; 
+}
+
+.carousel-container::-webkit-scrollbar {
+  display: none; 
+}
+
+.carousel-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  height: 100%; 
+}
+
+.carousel-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; 
+}
+
+.carousel-dots {
+  display: flex;
+  top: 82%;
+  justify-content: center;
+  position: absolute;
+  bottom: 10px;
+  width: 100%;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  margin: 0 5px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  transition: background-color 0.3s;
+}
+
+.dot.active {
+  background-color: white;
 }
