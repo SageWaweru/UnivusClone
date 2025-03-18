@@ -249,14 +249,28 @@ function Feed() {
     );
   };
 
-  const handleScroll = (index) => {
-    if (!carouselRefs.current[index]) return;
+  const handleScroll = (index, totalImages) => {
+    const container = carouselRefs.current[index];
+    if (!container) return;
 
-    const scrollLeft = carouselRefs.current[index].scrollLeft;
-    const slideWidth = carouselRefs.current[index].clientWidth;
+    const slideWidth = container.offsetWidth;
+    const scrollLeft = container.scrollLeft;
+    const currentIndexValue = currentIndex[index] || 0;
 
-    const newIndex = Math.round(scrollLeft / slideWidth);
-    setCurrentIndex((prev) => ({ ...prev, [index]: newIndex }));
+    let newIndex = currentIndexValue;
+    if (scrollLeft > currentIndexValue * slideWidth + slideWidth / 2) {
+      newIndex = Math.min(currentIndexValue + 1, totalImages - 1);
+    } else if (scrollLeft < currentIndexValue * slideWidth - slideWidth / 2) {
+      newIndex = Math.max(currentIndexValue - 1, 0);
+    }
+
+    if (newIndex !== currentIndexValue) {
+      requestAnimationFrame(() => {
+        container.scrollTo({ left: newIndex * slideWidth, behavior: "smooth" });
+      });
+
+      setCurrentIndex((prev) => ({ ...prev, [index]: newIndex }));
+    }
   };
 
   return (
@@ -349,7 +363,7 @@ function Feed() {
               <div
                 className="carousel-container"
                 ref={(el) => (carouselRefs.current[index] = el)}
-                onScroll={() => handleScroll(index)}
+                onScroll={() => handleScroll(index, feedItem.images.length)}
               >
                 {feedItem.images.map((imgSrc, idx) => (
                   <div key={idx} className="carousel-slide">
