@@ -21,8 +21,8 @@ import {
 } from "@fortawesome/free-regular-svg-icons";
 
 const API_KEY = import.meta.env.VITE_API_KEY;
-const VIDEO_URL = "https://api.pexels.com/videos/search?query=nature&per_page=5";
-const IMAGE_URL = "https://api.pexels.com/v1/curated?per_page=9";
+const VIDEO_URL = `/api/videos?apiKey=${API_KEY}`;
+const IMAGE_URL = `/api/images?apiKey=${API_KEY}`;
 
 function Feed() {
   const [feed, setFeed] = useState([]);
@@ -113,11 +113,9 @@ function Feed() {
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        const response = await fetch(VIDEO_URL, {
-          headers: { Authorization: API_KEY },
-        });
+        const response = await fetch(VIDEO_URL);
         if (!response.ok) throw new Error("Failed to fetch videos");
-
+  
         const data = await response.json();
         return data.videos.map((video) => ({
           id: video.id,
@@ -129,17 +127,14 @@ function Feed() {
         return [];
       }
     };
-
+  
     const fetchImages = async () => {
       try {
-        const response = await fetch(IMAGE_URL, {
-          headers: { Authorization: API_KEY },
-        });
-
+        const response = await fetch(IMAGE_URL);
         if (!response.ok) throw new Error("Failed to fetch images");
-
+  
         const data = await response.json();
-
+  
         const groupedImages = [];
         for (let i = 0; i < data.photos.length; i += 3) {
           groupedImages.push({
@@ -148,14 +143,14 @@ function Feed() {
             images: data.photos.slice(i, i + 3).map((photo) => photo.src.large),
           });
         }
-
+  
         return groupedImages;
       } catch (error) {
         console.error("Error fetching images:", error);
         return [];
       }
     };
-
+  
     const fetchFeed = async () => {
       const [videoData, imageData] = await Promise.all([
         fetchVideos(),
