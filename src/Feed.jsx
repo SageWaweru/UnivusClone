@@ -154,7 +154,6 @@ function Feed() {
   
     const fetchFeed = async () => {
       const [videoData, imageData] = await Promise.all([
-        console.log("API_KEY:", API_KEY),
         fetchVideos(),
         fetchImages(),
       ]);
