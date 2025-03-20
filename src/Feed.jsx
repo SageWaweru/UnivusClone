@@ -23,7 +23,7 @@ import {
 const API_KEY = import.meta.env.VITE_API_KEY;
 const VIDEO_URL = `/api/videos?apiKey=${API_KEY}`;
 const IMAGE_URL = `/api/images?apiKey=${API_KEY}`;
-const BACKEND_URL= "https://univusclone.onrender.com/";
+const BACKEND_URL= "https://univusclone.onrender.com";
 
 function Feed() {
   const [feed, setFeed] = useState([]);
