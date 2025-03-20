@@ -21,7 +21,7 @@ import {
 } from "@fortawesome/free-regular-svg-icons";
 
 const API_KEY = import.meta.env.VITE_API_KEY;
-const VIDEO_URL = "https://api.pexels.com/videos/popular?per_page=5";
+const VIDEO_URL = "https://api.pexels.com/videos/search?query=nature&per_page=5";
 const IMAGE_URL = "https://api.pexels.com/v1/curated?per_page=9";
 
 function Feed() {
@@ -122,7 +122,7 @@ function Feed() {
         return data.videos.map((video) => ({
           id: video.id,
           type: "video",
-          src: video.video_files[1]?.link,
+          src: video.video_files[0]?.link,
         }));
       } catch (error) {
         console.error("Error fetching videos:", error);
@@ -395,7 +395,7 @@ function Feed() {
             <img
               src={feedItem.src}
               className="object-fit-cover w-100 h-100"
-              alt="Pexels"
+              alt="Pexels Image"
               style={{ objectFit: "cover" }}
             />
           )}
