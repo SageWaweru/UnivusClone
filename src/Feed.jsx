@@ -21,9 +21,9 @@ import {
 } from "@fortawesome/free-regular-svg-icons";
 
 const API_KEY = import.meta.env.VITE_API_KEY;
-const VIDEO_URL = `/api/videos?apiKey=${API_KEY}`;
-const IMAGE_URL = `/api/images?apiKey=${API_KEY}`;
-const BACKEND_URL= "https://univusclone.onrender.com";
+const BACKEND_URL = "https://univusclone.onrender.com"; 
+const VIDEO_URL = `${BACKEND_URL}/api/videos?apiKey=${API_KEY}`;
+const IMAGE_URL = `${BACKEND_URL}/api/images?apiKey=${API_KEY}`;
 
 function Feed() {
   const [feed, setFeed] = useState([]);
@@ -114,7 +114,7 @@ function Feed() {
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        const response = await fetch(`${BACKEND_URL}${VIDEO_URL}`);
+        const response = await fetch(VIDEO_URL);
         if (!response.ok) throw new Error("Failed to fetch videos");
   
         const data = await response.json();
@@ -131,7 +131,7 @@ function Feed() {
   
     const fetchImages = async () => {
       try {
-        const response = await fetch(`${BACKEND_URL}${IMAGE_URL}`);
+        const response = await fetch(IMAGE_URL);
         if (!response.ok) throw new Error("Failed to fetch images");
   
         const data = await response.json();
@@ -154,6 +154,7 @@ function Feed() {
   
     const fetchFeed = async () => {
       const [videoData, imageData] = await Promise.all([
+        console.log("API_KEY:", API_KEY),
         fetchVideos(),
         fetchImages(),
       ]);
